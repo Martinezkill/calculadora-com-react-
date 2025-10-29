@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rubik&display=swap"
+      rel="stylesheet"
+    />
+    <title>Calculadora</title>
+
+    <style type="text/tailwindcss">
+      @theme {
+        --text: #ebebeb;
+        --text-secondary: #6b6b6b;
+        --primary: #462878;
+        --background: #2d2a37;
+
+        --gradient: 180deg, rgba(0, 0, 0, 0.05) 0%,
+          rgba(255, 255, 255, 0.05) 100%;
+
+        --gradient-hover: 180deg, rgba(0, 0, 0, 0.1) 0%,
+          rgba(255, 255, 255, 0.1) 100%;
+
+        --shadow: 0px 11px 7px 0px rgba(0, 0, 0, 0.01),
+          0px 7px 7px 0px rgba(0, 0, 0, 0.04),
+          0px 4px 6px 0px rgba(0, 0, 0, 0.1),
+          0px 2px 4px 0px rgba(0, 0, 0, 0.26),
+          0px 0px 2px 0px rgba(0, 0, 0, 0.29),
+          0px 2px 3px 0px rgba(255, 255, 255, 0.06) inset;
+
+        --font-sans: "Rubik", sans-serif;
+      }
+    </style>
+  </head>
+
+  <body
+    class="min-h-screen bg-linear-[180deg,_#807ECE_0%,_#8E7ECE_100%] text-(--text) font-(--font-sans)"
+  >
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const textVariants = {
+        default: "text-xl",
+        muted: "text-xl text-(--text-secondary)",
+        heading: "text-2xl font-bold",
+        blast: "text-3xl",
+      };
+
+      function Text({
+        as = "span",
+        variant = "default",
+        className,
+        children,
+        ...props
+      }) {
+        return React.createElement(
+          as,
+          {
+            className: `${textVariants[variant]} ${className ? className : ""}`,
+            ...props,
+          },
+          children
+        );
+      }
+      // Componente de texto do App,que e o principal da aplicacao React
+
+      const buttonVariants = {
+        default: "bg-(--background)",
+        primary: "bg-(--primary)",
+      };
+      // Variantes de botao, que podem ser usadas para diferenciar botoes primarios e secundarios
+
+      function Button({ variant = "default", className, children, ...props }) {
+        return (
+          <Text
+            as="button"
+            variant="heading"
+            className={`flex items-center justify-center rounded-xl
+                  p-3 cursor-pointer text-(--text) bg-linear-(--gradient) hover:bg-linear-(--gradient-hover)
+                  shadow-(--shadow)
+                  ${buttonVariants[variant]}
+
+                  ${className ? className : ""}`}
+            {...props}
+          >
+            {children}
+          </Text>
+        );
+      }
+      // Componente de botao do App
+
+      function Card({ className, children, ...props }) {
+        return (
+          <div
+            className={`bg-(--background) shadow-(--shadow) rounded-2xl
+                  ${className ? className : ""}`}
+            {...props}
+          >
+            {children}
+          </div>
+        );
+      }
+      // Componente de cartao do App, que e usado para agrupar elementos, como botoes e display
+
+      const Buttons = [
+        [
+          { input: "CE" },
+          { input: "C", className: "flex-1 h-16" },
+          { input: "/", variant: "primary" },
+        ],
+        [
+          { input: "7" },
+          { input: "8" },
+          { input: "9" },
+          { input: "*", variant: "primary" },
+        ],
+        [
+          { input: "4" },
+          { input: "5" },
+          { input: "6" },
+          { input: "-", variant: "primary" },
+        ],
+        [
+          { input: "1" },
+          { input: "2" },
+          { input: "3" },
+          { input: "+", variant: "primary" },
+        ],
+        [
+          { input: "0", className: "flex-1 h-16" },
+          { input: "," },
+          { input: "=", className: "w-16 h-16 bg-[#7F45E2]" },
+        ],
+      ];
+      // Matriz de botoes, que contem os valores e variantes de cada botao
+
+      const CalculatorContext = React.createContext();
+      function CalculatorProvider({ children }) {
+        const [history, setHistory] = React.useState([]);
+
+        function updateHistory(operation, parsedresult) {
+          setHistory((prev) => {
+            return [...prev, `${operation} = ${parsedresult}`];
+          });
+        }
+
+        return (
+          <CalculatorContext.Provider value={{ history, updateHistory }}>
+            {children}
+          </CalculatorContext.Provider>
+        );
+      }
+
+      function safeCalculate(expression) {
+        // Substituir vírgulas por pontos para cálculo
+        const sanitizedExpression = expression.replace(/,/g, ".");
+
+        // Remover espaços em branco
+        const cleanExpression = sanitizedExpression.replace(/\s+/g, "");
+
+        // Validar a expressão - permitir apenas números e operadores básicos
+        const validExpression = /^[0-9+\-*/().\s]+$/.test(cleanExpression);
+
+        if (!validExpression) {
+          throw new Error("Expressão contém caracteres inválidos");
+        }
+
+        try {
+          // Usar Function constructor como alternativa mais segura ao eval
+          // Isso evita acesso ao escopo global
+          const result = new Function(`return (${cleanExpression})`)();
+
+          // Validar se o resultado é um número finito
+          if (typeof result !== "number" || !isFinite(result)) {
+            throw new Error("Resultado inválido");
+          }
+
+          return result;
+        } catch (error) {
+          // Tratamento específico para divisão por zero
+          if (
+            cleanExpression.includes("/0") ||
+            cleanExpression.includes("/0.")
+          ) {
+            throw new Error("Divisão por zero não é permitida");
+          }
+          throw new Error("Erro ao calcular expressão");
+        }
+      }
+
+      function useCalculator() {
+        const [operation, setOperation] = React.useState("");
+        const [result, setResult] = React.useState("");
+        const [error, setError] = React.useState(""); // ← Novo estado para erro
+        const { updateHistory } = React.useContext(CalculatorContext);
+
+        function doOperation(input) {
+          // Limpar erro ao iniciar nova operação
+          if (error && input !== "=") {
+            setError("");
+          }
+
+          if (input === "C") {
+            setOperation("");
+            setResult("");
+            setError("");
+            return;
+          }
+
+          if (input === "CE") {
+            setResult("");
+            setError("");
+            setOperation(operation.slice(0, -1));
+            return;
+          }
+
+          if (input === "=") {
+            try {
+              // VERIFICAÇÃO DE EXPRESSÃO VAZIA
+              if (!operation.trim()) {
+                throw new Error("Digite uma expressão para calcular");
+              }
+
+              const operationResult = safeCalculate(operation);
+              const parsedResult = operationResult
+                .toString()
+                .replace(/\./g, ",");
+              setResult(parsedResult);
+              setError("");
+              updateHistory(operation, parsedResult);
+            } catch (error) {
+              setResult("");
+              setError(error.message);
+              console.error("Erro no cálculo:", error.message);
+            }
+            return;
+          }
+
+          if (result && !error) {
+            setOperation(isNaN(input) ? `${result}${input}` : input);
+            setResult("");
+            return;
+          }
+
+          if (input === "," && !operation.endsWith(",")) {
+            setOperation(`${operation},`);
+            return;
+          }
+
+          setOperation(`${operation}${input}`.replace(/\s+/g, ""));
+        }
+
+        return {
+          operation,
+          result,
+          error, // ← Exportar o estado de erro
+          doOperation,
+        };
+      }
+
+      function CalculatorDisplay({ operation, result }) {
+        return (
+          <div
+            className={`flex flex-col gap-2 px-[1.375rem]
+                    cursor-default select-none
+                `}
+          >
+            <Text
+              as="div"
+              variant="muted"
+              className="flex items-center justify-end h-7 "
+            >
+              {result && operation}
+            </Text>
+
+            <div
+              className={`
+                    flex items-center justify-between h-9
+                    `}
+            >
+              <Text variant="muted">=</Text>
+              <Text variant="blast">{result || operation}</Text>
+            </div>
+          </div>
+        );
+      }
+      // Componente de display da calculadora, que mostra a operacao atual e o resultado
+
+      function Calculator() {
+        const { operation, result, doOperation } = useCalculator();
+        function handleInputClick(input) {
+          doOperation(input);
+        }
+
+        // Lida com o clique do botao, atualizando a operacao atual
+        return (
+          <Card
+            className={` flex flex-col gap-[1.625rem] w-[22.25rem]
+                  pt-14 px-8 pb-8
+                `}
+          >
+            <CalculatorDisplay operation={operation} result={result} />
+            <div className="flex flex-col gap-3">
+              {Buttons.map((row, index) => (
+                <div key={`row-${index}`} className="flex gap-3">
+                  {row.map((button) => (
+                    <Button
+                      key={button.input}
+                      className={button.className || "w-16 h-16"}
+                      variant={button.variant}
+                      onClick={() => handleInputClick(button.input)}
+                    >
+                      {button.input}
+                    </Button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      }
+      // Componente principal da calculadora, que inclui o display e os botoe
+
+      function OperationHistory() {
+        const { history } = React.useContext(CalculatorContext);
+
+        return (
+          <Card className="w-full py-10 px-8">
+            <Text as="h1" variant="heading" className="mb-4">
+              Historico de operacoes
+            </Text>
+            {history.length > 0 ? (
+              <ul className=" flex flex-col gap-3">
+                {history.map((value, index) => (
+                  <Text key={`item-${index}`} as="li">
+                    {value}
+                  </Text>
+                ))}
+              </ul>
+            ) : (
+              <Text as="p" variant="muted">
+                Nenhuma operacao realizada ainda
+              </Text>
+            )}
+          </Card>
+        );
+      }
+      // Componente de historico de operacoes, que mostra as operacoes anteriores
+
+      function App() {
+        return (
+          <main
+            className={`py-28 px-4 sm:px-10 flex flex-col sm:flex-row items-center sm:items-stretch gap-2`}
+          >
+            <CalculatorProvider>
+              <Calculator />
+              <OperationHistory />
+            </CalculatorProvider>
+          </main>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
