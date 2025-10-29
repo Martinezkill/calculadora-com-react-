@@ -34,7 +34,7 @@ Google Fonts - Tipografia (Rubik)
 
 Desenvolvido com ❤️ usando React e Tailwind CSS
 
-## 📊 Diagramas Adicionais (para pasta assets/diagrams/)  
+## 📊 Diagramas Adicionais   
 
 ### Diagrama de Estado
 ![Diagrama de estado](./assets/Diagrama.png)
